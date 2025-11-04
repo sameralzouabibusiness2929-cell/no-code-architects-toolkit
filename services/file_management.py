@@ -44,7 +44,10 @@ def get_extension_from_url(url):
 
     # If no extension in URL, try to determine from content type
     try:
-        response = requests.head(url, allow_redirects=True)
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        response = requests.head(url, allow_redirects=True, headers=headers)
         content_type = response.headers.get('content-type', '').split(';')[0]
         ext = mimetypes.guess_extension(content_type)
         if ext:
@@ -65,7 +68,10 @@ def download_file(url, storage_path="/tmp/"):
     local_filename = os.path.join(storage_path, f"{file_id}{extension}")
 
     try:
-        response = requests.get(url, stream=True)
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+        }
+        response = requests.get(url, stream=True, headers=headers)
         response.raise_for_status()
 
         with open(local_filename, 'wb') as f:

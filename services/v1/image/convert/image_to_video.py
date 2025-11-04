@@ -24,7 +24,7 @@ from PIL import Image
 from config import LOCAL_STORAGE_PATH
 logger = logging.getLogger(__name__)
 
-def process_image_to_video(image_url, length, frame_rate, zoom_speed, job_id, webhook_url=None):
+def process_image_to_video(image_url, length, frame_rate, zoom_speed, job_id, webhook_url=None, zoom_direction='in'):
     try:
         # Download the image file
         image_path = download_file(image_url, LOCAL_STORAGE_PATH)
@@ -52,12 +52,20 @@ def process_image_to_video(image_url, length, frame_rate, zoom_speed, job_id, we
 
         logger.info(f"Using scale dimensions: {scale_dims}, output dimensions: {output_dims}")
         logger.info(f"Video length: {length}s, Frame rate: {frame_rate}fps, Total frames: {total_frames}")
-        logger.info(f"Zoom speed: {zoom_speed}/s, Final zoom factor: {zoom_factor}")
+        logger.info(f"Zoom speed: {zoom_speed}/s, Final zoom factor: {zoom_factor}, Direction: {zoom_direction}")
+
+        # Prepare zoom formula based on direction
+        if zoom_direction == 'out':
+            # Zoom out: start zoomed in, end at normal size
+            zoom_formula = f"'max({zoom_factor}-(({zoom_speed}*{length})*on/{total_frames}), 1)'"
+        else:
+            # Zoom in (default): start at normal size, end zoomed in
+            zoom_formula = f"'min(1+(({zoom_speed}*{length})*on/{total_frames}), {zoom_factor})'"
 
         # Prepare FFmpeg command with fps filter to ensure correct frame rate
         cmd = [
             'ffmpeg', '-framerate', str(frame_rate), '-loop', '1', '-i', image_path,
-            '-vf', f"scale={scale_dims},zoompan=z='min(1+({zoom_speed}*{length})*on/{total_frames}, {zoom_factor})':d={total_frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s={output_dims},fps={frame_rate}",
+            '-vf', f"scale={scale_dims},zoompan=z={zoom_formula}:d={total_frames}:x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':s={output_dims},fps={frame_rate}",
             '-c:v', 'libx264', '-r', str(frame_rate), '-t', str(length), '-pix_fmt', 'yuv420p', output_path
         ]
 
